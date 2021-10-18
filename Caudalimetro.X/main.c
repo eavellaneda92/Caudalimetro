@@ -5,11 +5,11 @@
  * Created on 28 de septiembre de 2021, 15:36
  */
 
-
 #include "config.h"
 #include "lcd.h"
 #include "Temporizadores.h"
 #include "UART.h"
+#include "sim800.h"
 #include "stdio.h"
 
 //SALIDAS DE LED
@@ -35,41 +35,82 @@ unsigned char puntero = 0;
 #define GSM  0
 #define TF02 1
 void Select_Mode(char modo);
-int flag_tempo0 = 0;
-int flag_tempo1 = 0;
-int flag_serial = 0;
-int contador_t1 = 0;
-int llamada_ok = 0;
+char tipo_modo = 0;
+char flag_inicio = 0;
+char flag_correcto = 0;
+unsigned int Valor_h = 0;
+unsigned int Valor_l = 0;
+
+//FUNCIONES PARA TRAMAS
+int Get_Index(char *TRAMA, char *PARTE);
+char Get_Length(char *TRAMA);
+
+//Variables de tiempo
+char flag_Buffer = 0;   //Cuando ya registro valores en buffer
+char flag_tempo1 = 0;   //Cuando se activa el timer1 
+int contador_t1 = 0;    //Acumulador de interrupcion de 25ms 
+char flag_tempo2 = 0;   //Cuando termina proceso x de envio GPRS
+int contador_t2 = 0;    //Acumulador de interrupcion de 5ms
+char flag_send = 0;     //Cuando debe iniciar exportacion de datos
 
 void __interrupt() scr(){
+    //INTERRUPCION SERIAL
     if(PIR1bits.RC1IF){
-        
         char c = RCREG;
         if(c != 0){
-            LED_DEBUG = 1;
-            LED_ERROR++;
-            if(puntero < 30){
-                Buffer[puntero] = c;
-                puntero++;
-                TMR0 = 0;
-                T0CONbits.TMR0ON = 1;
+            if(tipo_modo == TF02){
+                if(flag_correcto == 1){
+                    if(puntero < 30){
+                        Buffer[puntero] = c;
+                        puntero++;
+                        TMR0 = 0;
+                        T0CONbits.TMR0ON = 1;
+                    }
+                }
+                //Pregunta por el segundo 0x59
+                if(c == 0x59 && flag_inicio == 1){
+                    flag_correcto = 1;
+                }else{
+                    flag_correcto = 0;
+                    flag_inicio = 0;
+                }
+                //Pregunta por el primer 0x59
+                if(c == 0x59){
+                    flag_inicio = 1;
+                }
+            }else{
+                
             }
         }
         PIR1bits.RCIF = 0;
     }
+    
+    //INTERRUPCION TIMER 0
     if(INTCONbits.TMR0IF){
-        flag_tempo0 = 1;
+        flag_Buffer = 1;
         T0CONbits.TMR0ON = 0;
         INTCONbits.TMR0IF = 0;
     }
+    
+    //INTERRUPCION TIMER 1 25ms
     if(PIR1bits.TMR1IF){
         contador_t1++;
-        if(contador_t1>=100){
+        if(contador_t1>=240){ //6 segundo
             LED_ERROR ++;
             flag_tempo1 = 1;
             contador_t1 = 0;
         }
+        TMR1 = 28036;
         PIR1bits.TMR1IF = 0;
+    }
+    
+    //INTERRUPCION TIMER 2 5ms
+    if(PIR1bits.TMR2IF){
+        contador_t2++;
+        if(contador_t2>=500){
+            
+        }
+        PIR1bits.TMR2IF = 0;
     }
 }
 
@@ -90,8 +131,9 @@ void main(void){
     INTCONbits.PEIE = 1;
     
     /*TEMPORIZADORES*/
-    Timer0_Init(100);
-    Timer1_Init(100);
+    Timer0_Init();
+    Timer1_Init();
+    Timer2_Init();
     T0CONbits.TMR0ON = 0;
     
     /*INICIO DE LCD*/
@@ -106,31 +148,41 @@ void main(void){
     /*INICIO SIM800*/
     SIM_ENABLE = 1;
     SIM_RESET = 0;
+    UART_Begin(9600);
     Select_Mode(TF02);
-    __delay_ms(3000);
-    __delay_ms(3000);
-    __delay_ms(3000);
+
     while(1){
-        if(flag_tempo1){
-            if(!llamada_ok){
-                UART_Println("ATD929105967;");
-                llamada_ok = 1;
+        //LECTURA DE VALORES GUARDADOS EN EL BUFFER
+        if(flag_Buffer){
+            if(tipo_modo == TF02){
+                unsigned int dh = (unsigned int)Buffer[0];
+                unsigned int dl = (unsigned int)Buffer[1];
+                unsigned int dis = (dh<<8) | dl;
+                Select_Mode(GSM);
             }
-            else{
-                UART_Println("AT");
-            }
-            flag_tempo1 = 0;
+            flag_Buffer = 0;
         }
         
-        if(flag_tempo0){
-            for(unsigned char i = 0; i<puntero; i++){
-                Lcd_getc(2,i,Buffer[i]);
-            }
-            puntero = 0;
-            flag_tempo0 = 0;
-            LED_DEBUG = 0;
+        //Temporizador para peticion de dato cada 6 segundos
+        if(flag_tempo1){
+            Select_Mode(TF02);
+            flag_tempo1 = 0;
         }
     }
+}
+
+int Get_Index(char *TRAMA, char *PARTE){
+    
+    return 0;
+}
+
+char Get_Length(char *TRAMA){
+    char contador = 0;
+    while(*TRAMA){
+        contador++;
+        TRAMA++;
+    }
+    return contador;
 }
 
 void Select_Mode(char modo){
@@ -140,12 +192,14 @@ void Select_Mode(char modo){
             TF_TX_to_PIC_RX = 1;
             PIC_TX_to_SIM_RX = 0;
             SIM_TX_to_PIC_RX = 0;
+            tipo_modo = GSM;
             break;
         case TF02: 
             PIC_TX_to_SIM_RX = 1;
             SIM_TX_to_PIC_RX = 1;
             PIC_TX_to_TF_RX = 0;
             TF_TX_to_PIC_RX = 0;
+            tipo_modo = TF02;
             break;
     }
 }

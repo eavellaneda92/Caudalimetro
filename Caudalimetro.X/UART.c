@@ -41,10 +41,7 @@ void UART_Write( char data){
 }
 
 void UART_Println(char *buffer){
-    while(*buffer){
-        UART_Write(*buffer);
-        buffer++;
-    }
+    UART_Print(buffer);
     TXREG=10;
     while(!TXSTAbits.TRMT);
 }

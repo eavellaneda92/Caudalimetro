@@ -112,6 +112,9 @@ Version 4.0 HI-TECH Software Intermediate Code
 "5402
 [; ;C:/Program Files/Microchip/MPLABX/v5.45/packs/Microchip/PIC18Fxxxx_DFP/1.2.26/xc8\pic\include\proc\pic18f4550.h: 5402: extern volatile unsigned char TXREG __attribute__((address(0xFAD)));
 [v _TXREG `Vuc ~T0 @X0 0 e@4013 ]
+"21 ./UART.h
+[; ;./UART.h: 21:     void UART_Print(char *buffer);
+[v _UART_Print `(v ~T0 @X0 0 ef1`*uc ]
 "16 ./config.h
 [p x PLLDIV  =  5        ]
 "17
@@ -698,6 +701,9 @@ Version 4.0 HI-TECH Software Intermediate Code
 "8893
 [; ;C:/Program Files/Microchip/MPLABX/v5.45/packs/Microchip/PIC18Fxxxx_DFP/1.2.26/xc8\pic\include\proc\pic18f4550.h: 8893: __asm("TOSU equ 0FFFh");
 [; <" TOSU equ 0FFFh ;# ">
+"16 ./UART.h
+[; ;./UART.h: 16:     unsigned long valor[10];
+[v _valor `ul ~T0 @X0 -> 10 `i e ]
 "3 UART.c
 [; ;UART.c: 3: void UART_Init(void){
 [v _UART_Init `(v ~T0 @X0 1 ef ]
@@ -835,65 +841,49 @@ Version 4.0 HI-TECH Software Intermediate Code
 [v _buffer `*uc ~T0 @X0 1 r1 ]
 [f ]
 "44
-[; ;UART.c: 44:     while(*buffer){
+[; ;UART.c: 44:     UART_Print(buffer);
+[e ( _UART_Print (1 _buffer ]
+"45
+[; ;UART.c: 45:     TXREG=10;
+[e = _TXREG -> -> 10 `i `uc ]
+"46
+[; ;UART.c: 46:     while(!TXSTAbits.TRMT);
 [e $U 377  ]
 [e :U 378 ]
-{
-"45
-[; ;UART.c: 45:         UART_Write(*buffer);
-[e ( _UART_Write (1 *U _buffer ]
-"46
-[; ;UART.c: 46:         buffer++;
-[e ++ _buffer * -> -> 1 `i `x -> -> # *U _buffer `i `x ]
-"47
-[; ;UART.c: 47:     }
-}
 [e :U 377 ]
-"44
-[; ;UART.c: 44:     while(*buffer){
-[e $ != -> *U _buffer `i -> 0 `i 378  ]
+[e $ ! != -> . . _TXSTAbits 0 1 `i -> 0 `i 378  ]
 [e :U 379 ]
-"48
-[; ;UART.c: 48:     TXREG=10;
-[e = _TXREG -> -> 10 `i `uc ]
-"49
-[; ;UART.c: 49:     while(!TXSTAbits.TRMT);
-[e $U 380  ]
-[e :U 381 ]
-[e :U 380 ]
-[e $ ! != -> . . _TXSTAbits 0 1 `i -> 0 `i 381  ]
-[e :U 382 ]
-"50
-[; ;UART.c: 50: }
+"47
+[; ;UART.c: 47: }
 [e :UE 376 ]
 }
-"52
-[; ;UART.c: 52: void UART_Print(char *buffer){
+"49
+[; ;UART.c: 49: void UART_Print(char *buffer){
 [v _UART_Print `(v ~T0 @X0 1 ef1`*uc ]
 {
 [e :U _UART_Print ]
 [v _buffer `*uc ~T0 @X0 1 r1 ]
 [f ]
-"53
-[; ;UART.c: 53:     while(*buffer){
-[e $U 384  ]
-[e :U 385 ]
+"50
+[; ;UART.c: 50:     while(*buffer){
+[e $U 381  ]
+[e :U 382 ]
 {
-"54
-[; ;UART.c: 54:         UART_Write(*buffer);
+"51
+[; ;UART.c: 51:         UART_Write(*buffer);
 [e ( _UART_Write (1 *U _buffer ]
-"55
-[; ;UART.c: 55:         buffer++;
+"52
+[; ;UART.c: 52:         buffer++;
 [e ++ _buffer * -> -> 1 `i `x -> -> # *U _buffer `i `x ]
-"56
-[; ;UART.c: 56:     }
-}
-[e :U 384 ]
 "53
-[; ;UART.c: 53:     while(*buffer){
-[e $ != -> *U _buffer `i -> 0 `i 385  ]
-[e :U 386 ]
-"57
-[; ;UART.c: 57: }
-[e :UE 383 ]
+[; ;UART.c: 53:     }
+}
+[e :U 381 ]
+"50
+[; ;UART.c: 50:     while(*buffer){
+[e $ != -> *U _buffer `i -> 0 `i 382  ]
+[e :U 383 ]
+"54
+[; ;UART.c: 54: }
+[e :UE 380 ]
 }

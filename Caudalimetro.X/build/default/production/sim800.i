@@ -1,4 +1,4 @@
-# 1 "Temporizadores.c"
+# 1 "sim800.c"
 # 1 "<built-in>" 1
 # 1 "<built-in>" 3
 # 288 "<built-in>" 3
@@ -6,9 +6,14 @@
 # 1 "<built-in>" 2
 # 1 "C:/Program Files/Microchip/MPLABX/v5.45/packs/Microchip/PIC18Fxxxx_DFP/1.2.26/xc8\\pic\\include\\language_support.h" 1 3
 # 2 "<built-in>" 2
-# 1 "Temporizadores.c" 2
-# 1 "./Temporizadores.h" 1
-# 15 "./Temporizadores.h"
+# 1 "sim800.c" 2
+# 1 "./sim800.h" 1
+# 15 "./sim800.h"
+    void Socket_Init(int proceso);
+# 1 "sim800.c" 2
+
+# 1 "./UART.h" 1
+# 14 "./UART.h"
 # 1 "./config.h" 1
 # 16 "./config.h"
 #pragma config PLLDIV = 5
@@ -5693,46 +5698,55 @@ extern __attribute__((nonreentrant)) void _delaywdt(unsigned long);
 extern __attribute__((nonreentrant)) void _delay3(unsigned char);
 # 33 "C:/Program Files/Microchip/MPLABX/v5.45/packs/Microchip/PIC18Fxxxx_DFP/1.2.26/xc8\\pic\\include\\xc.h" 2 3
 # 80 "./config.h" 2
-# 15 "./Temporizadores.h" 2
+# 14 "./UART.h" 2
 
 
+    unsigned long valor[10];
+    void UART_Init(void);
+    void UART_Begin(unsigned long baud);
+    void UART_Write( char data);
+    void UART_Println(char *buffer);
+    void UART_Print(char *buffer);
+# 2 "sim800.c" 2
 
 
+char *IP = "29.10.12.14";
+char *PORT = "131";
+char *APN = "claro.pe";
+
+void Socket_Init(int proceso){
+
+    if(proceso == 1){
+        UART_Println("AT+CGATT?");
+    }
 
 
-    void Timer0_Init(void);
-    void Timer1_Init(void);
-    void Timer2_Init(void);
-# 1 "Temporizadores.c" 2
+    if(proceso == 2){
+        UART_Print("AT+CSTT=\"");
+        UART_Print(APN);
+        UART_Println("\"");
+    }
+
+    if(proceso == 3){
+        UART_Println("CIICR");
+    }
+
+    if(proceso == 4){
+        UART_Print("AT+CIPSTART=\"UDP\",\"");
+        UART_Print(IP);
+        UART_Print("\",");
+        UART_Print(PORT);
+        UART_Println("\"");
+    }
+
+    if(proceso == 5){
+        UART_Println("AT+CIPSEND");
+        UART_Print("Test_comunicacion");
+        UART_Write(0x1A);
+    }
 
 
-void Timer0_Init(void){
-    INTCONbits.TMR0IE = 1;
-    INTCONbits.TMR0IF = 0;
-    T0CONbits.T08BIT = 0;
-    T0CONbits.T0CS = 0;
-    T0CONbits.PSA = 0;
-    T0CONbits.T0PS = 0b011;
-    TMR0 = 0;
-    T0CONbits.TMR0ON = 1;
-}
-
-void Timer1_Init(void){
-    PIR1bits.TMR1IF = 0;
-    PIE1bits.TMR1IE = 1;
-    T1CONbits.RD16 = 1;
-    T1CONbits.T1RUN = 0;
-    T1CONbits.T1OSCEN = 0;
-    T1CONbits.TMR1CS = 0;
-    T1CONbits.T1CKPS = 0b11;
-    T1CONbits.TMR1ON = 1;
-}
-
-void Timer2_Init(void){
-    T2CONbits.T2CKPS = 0b10;
-    T2CONbits.TOUTPS = 0b1111;
-    PR2 = 250;
-    T2CONbits.TMR2ON = 1;
-    PIR1bits.TMR2IF = 0;
-    PIE1bits.TMR2IE = 1;
+    if(proceso == 6){
+        UART_Println("AT+CIPCLOSE");
+    }
 }

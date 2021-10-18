@@ -18,10 +18,9 @@ extern "C" {
 #define T0_ON   T0CONbits.TMR0ON = 1
 #define T0_OFF  T0CONbits.TMR0ON = 0
   
-    void Timer0_Init(unsigned int tiempo);
-    void Timer0_Set(unsigned int tiempo);
-    void Timer1_Init(unsigned int tiempo);
-    void Timer1_Set(unsigned int tiempo);
+    void Timer0_Init(void);
+    void Timer1_Init(void);
+    void Timer2_Init(void);
 
 #ifdef	__cplusplus
 }

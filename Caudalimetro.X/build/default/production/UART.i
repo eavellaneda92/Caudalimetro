@@ -5696,6 +5696,7 @@ extern __attribute__((nonreentrant)) void _delay3(unsigned char);
 # 14 "./UART.h" 2
 
 
+    unsigned long valor[10];
     void UART_Init(void);
     void UART_Begin(unsigned long baud);
     void UART_Write( char data);
@@ -5745,10 +5746,7 @@ void UART_Write( char data){
 }
 
 void UART_Println(char *buffer){
-    while(*buffer){
-        UART_Write(*buffer);
-        buffer++;
-    }
+    UART_Print(buffer);
     TXREG=10;
     while(!TXSTAbits.TRMT);
 }

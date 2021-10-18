@@ -109,22 +109,6 @@ void Lcd_Out(unsigned char y, unsigned char x, char *buffer)
     return;
 }
 
-void Lcd_getc(unsigned char y, unsigned char x, char buffer)
-    {
-    unsigned char data;
-    switch (y)
-    {   
-        case 1: data = 128 + x; break;
-        case 2: data = 192 + x; break;
-        case 3: data = 148 + x; break;
-        case 4: data = 212 + x; break;
-        default: break;
-    }
-    Lcd_Cmd(data);     
-    Lcd_Chr_CP(buffer);
-    return;
-}
-
 void Lcd_Chr_CP(char data){
     LCD_EN = 0; LCD_RS = 1;
     LCD_RD7 = (data & 0b10000000)>>7; LCD_RD6 = (data & 0b01000000)>>6;

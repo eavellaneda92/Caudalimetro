@@ -14,7 +14,6 @@
 
 
 
-
 # 1 "./config.h" 1
 # 16 "./config.h"
 #pragma config PLLDIV = 5
@@ -5699,7 +5698,7 @@ extern __attribute__((nonreentrant)) void _delaywdt(unsigned long);
 extern __attribute__((nonreentrant)) void _delay3(unsigned char);
 # 33 "C:/Program Files/Microchip/MPLABX/v5.45/packs/Microchip/PIC18Fxxxx_DFP/1.2.26/xc8\\pic\\include\\xc.h" 2 3
 # 80 "./config.h" 2
-# 9 "main.c" 2
+# 8 "main.c" 2
 
 # 1 "./lcd.h" 1
 # 44 "./lcd.h"
@@ -5771,22 +5770,6 @@ void Lcd_Out(unsigned char y, unsigned char x, char *buffer)
     return;
 }
 
-void Lcd_getc(unsigned char y, unsigned char x, char buffer)
-    {
-    unsigned char data;
-    switch (y)
-    {
-        case 1: data = 128 + x; break;
-        case 2: data = 192 + x; break;
-        case 3: data = 148 + x; break;
-        case 4: data = 212 + x; break;
-        default: break;
-    }
-    Lcd_Cmd(data);
-    Lcd_Chr_CP(buffer);
-    return;
-}
-
 void Lcd_Chr_CP(char data){
     LATDbits.LD3 = 0; LATDbits.LD2 = 1;
     LATDbits.LD7 = (data & 0b10000000)>>7; LATDbits.LD6 = (data & 0b01000000)>>6;
@@ -5813,23 +5796,28 @@ void Lcd_Cmd(unsigned char data){
     LATDbits.LD3 = 1; _delay((unsigned long)((5)*(48000000/4000000.0))); LATDbits.LD3 = 0;
     _delay((unsigned long)((5500)*(48000000/4000000.0)));
 }
-# 10 "main.c" 2
+# 9 "main.c" 2
 
 # 1 "./Temporizadores.h" 1
 # 21 "./Temporizadores.h"
-    void Timer0_Init(unsigned int tiempo);
-    void Timer0_Set(unsigned int tiempo);
-    void Timer1_Init(unsigned int tiempo);
-    void Timer1_Set(unsigned int tiempo);
-# 11 "main.c" 2
+    void Timer0_Init(void);
+    void Timer1_Init(void);
+    void Timer2_Init(void);
+# 10 "main.c" 2
 
 # 1 "./UART.h" 1
 # 16 "./UART.h"
+    unsigned long valor[10];
     void UART_Init(void);
     void UART_Begin(unsigned long baud);
     void UART_Write( char data);
     void UART_Println(char *buffer);
     void UART_Print(char *buffer);
+# 11 "main.c" 2
+
+# 1 "./sim800.h" 1
+# 15 "./sim800.h"
+    void Socket_Init(int proceso);
 # 12 "main.c" 2
 
 # 1 "C:\\Program Files\\Microchip\\xc8\\v2.31\\pic\\include\\c99\\stdio.h" 1 3
@@ -5982,41 +5970,82 @@ unsigned char puntero = 0;
 
 
 void Select_Mode(char modo);
-int flag_tempo0 = 0;
-int flag_tempo1 = 0;
-int flag_serial = 0;
+char tipo_modo = 0;
+char flag_inicio = 0;
+char flag_correcto = 0;
+unsigned int Valor_h = 0;
+unsigned int Valor_l = 0;
+
+
+int Get_Index(char *TRAMA, char *PARTE);
+char Get_Length(char *TRAMA);
+
+
+char flag_Buffer = 0;
+char flag_tempo1 = 0;
 int contador_t1 = 0;
-int llamada_ok = 0;
+char flag_tempo2 = 0;
+int contador_t2 = 0;
+char flag_send = 0;
 
 void __attribute__((picinterrupt(("")))) scr(){
-    if(PIR1bits.RC1IF){
 
+    if(PIR1bits.RC1IF){
         char c = RCREG;
         if(c != 0){
-            LATDbits.LATD0 = 1;
-            LATDbits.LATD1++;
-            if(puntero < 30){
-                Buffer[puntero] = c;
-                puntero++;
-                TMR0 = 0;
-                T0CONbits.TMR0ON = 1;
+            if(tipo_modo == 1){
+                if(flag_correcto == 1){
+                    if(puntero < 30){
+                        Buffer[puntero] = c;
+                        puntero++;
+                        TMR0 = 0;
+                        T0CONbits.TMR0ON = 1;
+                    }
+                }
+
+                if(c == 0x59 && flag_inicio == 1){
+                    flag_correcto = 1;
+                }else{
+                    flag_correcto = 0;
+                    flag_inicio = 0;
+                }
+
+                if(c == 0x59){
+                    flag_inicio = 1;
+                }
+            }else{
+
             }
         }
         PIR1bits.RCIF = 0;
     }
+
+
     if(INTCONbits.TMR0IF){
-        flag_tempo0 = 1;
+        flag_Buffer = 1;
         T0CONbits.TMR0ON = 0;
         INTCONbits.TMR0IF = 0;
     }
+
+
     if(PIR1bits.TMR1IF){
         contador_t1++;
-        if(contador_t1>=100){
+        if(contador_t1>=240){
             LATDbits.LATD1 ++;
             flag_tempo1 = 1;
             contador_t1 = 0;
         }
+        TMR1 = 28036;
         PIR1bits.TMR1IF = 0;
+    }
+
+
+    if(PIR1bits.TMR2IF){
+        contador_t2++;
+        if(contador_t2>=500){
+
+        }
+        PIR1bits.TMR2IF = 0;
     }
 }
 
@@ -6037,8 +6066,9 @@ void main(void){
     INTCONbits.PEIE = 1;
 
 
-    Timer0_Init(100);
-    Timer1_Init(100);
+    Timer0_Init();
+    Timer1_Init();
+    Timer2_Init();
     T0CONbits.TMR0ON = 0;
 
 
@@ -6053,31 +6083,41 @@ void main(void){
 
     LATCbits.LATC1 = 1;
     LATCbits.LATC0 = 0;
+    UART_Begin(9600);
     Select_Mode(1);
-    _delay((unsigned long)((3000)*(48000000/4000.0)));
-    _delay((unsigned long)((3000)*(48000000/4000.0)));
-    _delay((unsigned long)((3000)*(48000000/4000.0)));
+
     while(1){
-        if(flag_tempo1){
-            if(!llamada_ok){
-                UART_Println("ATD929105967;");
-                llamada_ok = 1;
+
+        if(flag_Buffer){
+            if(tipo_modo == 1){
+                unsigned int dh = (unsigned int)Buffer[0];
+                unsigned int dl = (unsigned int)Buffer[1];
+                unsigned int dis = (dh<<8) | dl;
+                Select_Mode(0);
             }
-            else{
-                UART_Println("AT");
-            }
-            flag_tempo1 = 0;
+            flag_Buffer = 0;
         }
 
-        if(flag_tempo0){
-            for(unsigned char i = 0; i<puntero; i++){
-                Lcd_getc(2,i,Buffer[i]);
-            }
-            puntero = 0;
-            flag_tempo0 = 0;
-            LATDbits.LATD0 = 0;
+
+        if(flag_tempo1){
+            Select_Mode(1);
+            flag_tempo1 = 0;
         }
     }
+}
+
+int Get_Index(char *TRAMA, char *PARTE){
+
+    return 0;
+}
+
+char Get_Length(char *TRAMA){
+    char contador = 0;
+    while(*TRAMA){
+        contador++;
+        TRAMA++;
+    }
+    return contador;
 }
 
 void Select_Mode(char modo){
@@ -6087,12 +6127,14 @@ void Select_Mode(char modo){
             LATAbits.LA0 = 1;
             LATAbits.LA2 = 0;
             LATAbits.LA3 = 0;
+            tipo_modo = 0;
             break;
         case 1:
             LATAbits.LA2 = 1;
             LATAbits.LA3 = 1;
             LATAbits.LA1 = 0;
             LATAbits.LA0 = 0;
+            tipo_modo = 1;
             break;
     }
 }
